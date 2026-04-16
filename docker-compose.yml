@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: adaptive_learning_api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: sqlite:///./adaptive_learning.db
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DEBUG: "True"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    networks:
+      - adaptive_learning_network
+
+  # Student Dashboard (Streamlit)
+  student_dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: student_dashboard
+    command: streamlit run student_dashboard.py --server.port=8501
+    environment:
+      API_URL: http://backend:8000/api
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+    networks:
+      - adaptive_learning_network
+
+  # Teacher Dashboard (Streamlit)
+  teacher_dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: teacher_dashboard
+    command: streamlit run teacher_dashboard.py --server.port=8502
+    environment:
+      API_URL: http://backend:8000/api
+    ports:
+      - "8502:8502"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+    networks:
+      - adaptive_learning_network
+
+networks:
+  adaptive_learning_network:
+    driver: bridge
